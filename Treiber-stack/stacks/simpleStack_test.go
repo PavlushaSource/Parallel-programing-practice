@@ -1,14 +1,20 @@
-package simple_stack
+package stacks
 
-import "testing"
+import (
+	"fmt"
+	"sync"
+	"testing"
+)
 
 func TestPopAndPush(t *testing.T) {
 	simpleSt := CreateSimpleStack[int]()
+	treiberSt := CreateTreiberStack[int]()
 	var tests = []struct {
 		currStack Stack[int]
 		typeStack string
 	}{
 		{&simpleSt, "simple"},
+		{&treiberSt, "treiber"},
 	}
 
 	for _, testStruct := range tests {
@@ -36,11 +42,13 @@ func TestPopAndPush(t *testing.T) {
 
 func TestPush(t *testing.T) {
 	simpleSt := CreateSimpleStack[int]()
+	treiberSt := CreateTreiberStack[int]()
 	var tests = []struct {
 		currStack Stack[int]
 		typeStack string
 	}{
 		{&simpleSt, "simple"},
+		{&treiberSt, "treiber"},
 	}
 
 	for _, testStruct := range tests {
@@ -54,4 +62,45 @@ func TestPush(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestPushAllElements(t *testing.T) {
+	treiberSt := CreateTreiberStack[int]()
+	goroutineCount := 100
+	wg := sync.WaitGroup{}
+	wg.Add(goroutineCount)
+	for i := 0; i < goroutineCount; i++ {
+		go func() {
+			for j := 0; j < 10_000; j++ {
+				treiberSt.Push(j)
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	currSize := treiberSt.Size()
+	fmt.Println("Size stack before all pop", currSize)
+	if goroutineCount*10_000 != currSize {
+		t.Errorf("Expected %d, but get %d", goroutineCount*10_000, currSize)
+		return
+	}
+
+	wg.Add(goroutineCount)
+	for i := 0; i < goroutineCount; i++ {
+		go func() {
+			for j := 0; j < 10_000; j++ {
+				_, err := treiberSt.Pop()
+				if err != nil {
+					t.Errorf("%d", err)
+					return
+				}
+			}
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+
+	currSize = treiberSt.Size()
+	fmt.Println("Size stack after all pop", currSize)
 }
