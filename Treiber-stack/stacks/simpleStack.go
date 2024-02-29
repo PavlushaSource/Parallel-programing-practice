@@ -1,4 +1,4 @@
-package simple_stack
+package stacks
 
 import (
 	"errors"
@@ -41,17 +41,3 @@ type Stack[T any] interface {
 	Pop() (T, error)
 	Peek() T
 }
-
-//func main() {
-//	st := CreateSimpleStack[int]()
-//	st.Push(10)
-//	st.Push(20)
-//	fmt.Println(st.Peek())
-//	val, err := st.Pop()
-//	if err != nil {
-//		fmt.Println(val, err)
-//	} else {
-//		fmt.Println(val)
-//	}
-//	fmt.Println(st.Peek())
-//}
