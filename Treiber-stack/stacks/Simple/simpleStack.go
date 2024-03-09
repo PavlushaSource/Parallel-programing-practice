@@ -1,4 +1,4 @@
-package stacks
+package Simple
 
 import (
 	"errors"
@@ -32,12 +32,19 @@ func (stack *SimpleStack[T]) Push(val T) {
 	stack.head, newNode.next = &newNode, stack.head
 }
 
-func CreateSimpleStack[T any]() SimpleStack[T] {
-	return SimpleStack[T]{}
+func (stack *SimpleStack[T]) Size() int {
+	elemCounter := 0
+	if stack == nil || stack.head == nil {
+		return 0
+	}
+	currHead := stack.head
+	for currHead != nil {
+		elemCounter++
+		currHead = currHead.next
+	}
+	return elemCounter
 }
 
-type Stack[T any] interface {
-	Push(T)
-	Pop() (T, error)
-	Peek() T
+func CreateSimpleStack[T any]() SimpleStack[T] {
+	return SimpleStack[T]{}
 }

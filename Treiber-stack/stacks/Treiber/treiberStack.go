@@ -1,4 +1,4 @@
-package stacks
+package Treiber
 
 import (
 	"errors"
@@ -30,7 +30,6 @@ func (stack *TreiberStack[T]) Push(val T) {
 	newHead := TNode[T]{value: val}
 	for {
 		head := stack.head.Load()
-		newHead.next = atomic.Pointer[TNode[T]]{}
 		newHead.next.Store(head)
 		if stack.head.CompareAndSwap(head, &newHead) {
 			return
@@ -49,19 +48,19 @@ func (stack *TreiberStack[T]) Peek() (nilVar T) {
 	return head.value
 }
 
-func CreateTreiberStack[T any]() TreiberStack[T] {
-	return TreiberStack[T]{}
-}
-
 func (stack *TreiberStack[T]) Size() int {
+	elemCounter := 0
 	if stack == nil || stack.head.Load() == nil {
 		return 0
 	}
-	elemCounter := 0
-	curHead := stack.head.Load()
-	for curHead != nil {
+	currHead := stack.head.Load()
+	for currHead != nil {
 		elemCounter++
-		curHead = curHead.next.Load()
+		currHead = currHead.next.Load()
 	}
 	return elemCounter
+}
+
+func CreateTreiberStack[T any]() TreiberStack[T] {
+	return TreiberStack[T]{}
 }
