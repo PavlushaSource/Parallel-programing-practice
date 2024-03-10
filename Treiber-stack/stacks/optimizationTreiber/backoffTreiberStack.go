@@ -35,9 +35,9 @@ func (stack *OptimizedTreiberStack[T]) Pop() (nilVar T, Err error) {
 		if val != nil {
 			return *val, nil
 		}
-		val = stack.eliminationArray.visit(nil)
-		if val != nil {
-			return *val, nil
+		valVisit, err := stack.eliminationArray.visit(nil)
+		if val != nil && valVisit == nil {
+			return *valVisit, nil
 		}
 
 	}
@@ -55,7 +55,8 @@ func (stack *OptimizedTreiberStack[T]) Push(val T) {
 		if stack.tryPush(&newHead) {
 			return
 		}
-		if stack.eliminationArray.visit(&val) == nil {
+		valVisit, err := stack.eliminationArray.visit(&val)
+		if valVisit == nil && err == nil {
 			return
 		}
 	}

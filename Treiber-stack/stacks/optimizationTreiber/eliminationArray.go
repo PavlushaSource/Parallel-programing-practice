@@ -7,7 +7,7 @@ type eliminationArray[T any] struct {
 	exchangers     []exchanger[T]
 }
 
-func (elArr *eliminationArray[T]) visit(value *T) *T {
+func (elArr *eliminationArray[T]) visit(value *T) (*T, error) {
 	index := rand.Intn(elArr.cap)
 	return elArr.exchangers[index].exchange(value, elArr.waitSteps)
 }

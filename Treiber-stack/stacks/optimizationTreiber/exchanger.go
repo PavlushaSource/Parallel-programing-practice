@@ -1,6 +1,9 @@
 package optimizationTreiber
 
-import "sync/atomic"
+import (
+	"errors"
+	"sync/atomic"
+)
 
 type exchangerState int
 
@@ -25,28 +28,35 @@ func newExchanger[T any]() exchanger[T] {
 	return newEx
 }
 
-func (ex *exchanger[T]) exchange(val *T, waitSteps int) *T {
-	for i := 0; i < waitSteps; i++ {
-		item := ex.item.Load().(exchangeItem[T])
-
-		if item.state == empty {
-			newItem := exchangeItem[T]{value: val, state: wait}
-			if ex.item.CompareAndSwap(item, newItem) {
-				for i < waitSteps {
-					item := ex.item.Load().(exchangeItem[T])
-					if item.state == busy {
-						newItem := exchangeItem[T]{state: empty}
-						ex.item.Store(newItem)
-						return item.value
-					}
-				}
+func (ex *exchanger[T]) exchange(val *T, waitSteps int) (*T, error) {
+	emptyCase := func(passSteps int) (*T, error) {
+		for j := passSteps; j < waitSteps; j++ {
+			exItem := ex.item.Load().(exchangeItem[T])
+			if exItem.state == busy {
+				newItem := exchangeItem[T]{state: empty}
+				ex.item.Store(newItem)
+				return exItem.value, nil
 			}
-		} else if item.state == wait {
+		}
+		return new(T), errors.New("end cycle")
+	}
+
+	for i := 0; i < waitSteps; i++ {
+		exItem := ex.item.Load().(exchangeItem[T])
+
+		if exItem.state == empty {
+			oldItem := exchangeItem[T]{state: empty}
+			newItem := exchangeItem[T]{value: val, state: wait}
+			if ex.item.CompareAndSwap(oldItem, newItem) {
+				return emptyCase(i)
+			}
+		} else if exItem.state == wait {
+			oldItem := exchangeItem[T]{value: exItem.value, state: wait}
 			newItem := exchangeItem[T]{value: val, state: busy}
-			if ex.item.CompareAndSwap(item, newItem) {
-				return item.value
+			if ex.item.CompareAndSwap(oldItem, newItem) {
+				return exItem.value, nil
 			}
 		}
 	}
-	return new(T)
+	return new(T), errors.New("end cycle")
 }
