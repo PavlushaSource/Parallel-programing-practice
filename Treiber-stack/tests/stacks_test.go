@@ -4,7 +4,7 @@ import (
 	"Treiber-stack/stacks"
 	"Treiber-stack/stacks/Simple"
 	"Treiber-stack/stacks/Treiber"
-	"fmt"
+	"Treiber-stack/stacks/optimizationTreiber"
 	"sync"
 	"testing"
 )
@@ -12,7 +12,7 @@ import (
 func TestPopAndPush(t *testing.T) {
 	simpleSt := Simple.CreateSimpleStack[int]()
 	treiberSt := Treiber.CreateTreiberStack[int]()
-	optTreiberSt := Treiber.CreateTreiberStack[int]()
+	optTreiberSt := optimizationTreiber.CreateBackoffTreiberStack[int]()
 	var tests = []struct {
 		currStack stacks.Stack[int]
 		typeStack string
@@ -48,7 +48,7 @@ func TestPopAndPush(t *testing.T) {
 func TestPush(t *testing.T) {
 	simpleSt := Simple.CreateSimpleStack[int]()
 	treiberSt := Treiber.CreateTreiberStack[int]()
-	optTreiberSt := Treiber.CreateTreiberStack[int]()
+	optTreiberSt := optimizationTreiber.CreateBackoffTreiberStack[int]()
 	var tests = []struct {
 		currStack stacks.Stack[int]
 		typeStack string
@@ -76,7 +76,7 @@ func TestPush(t *testing.T) {
 
 func TestPushGoroutines(t *testing.T) {
 	treiberSt := Treiber.CreateTreiberStack[int]()
-	optTreiberSt := Treiber.CreateTreiberStack[int]()
+	optTreiberSt := optimizationTreiber.CreateBackoffTreiberStack[int]()
 	var tests = []struct {
 		currStack stacks.Stack[int]
 		typeStack string
@@ -99,7 +99,6 @@ func TestPushGoroutines(t *testing.T) {
 		}
 		wg.Wait()
 		currSize := myStack.Size()
-		fmt.Println("Size stack before all pop", currSize)
 		if goroutineCount*10_000 != currSize {
 			t.Errorf("Expected %d, but get %d", goroutineCount*10_000, currSize)
 			return
@@ -121,6 +120,5 @@ func TestPushGoroutines(t *testing.T) {
 
 		wg.Wait()
 		currSize = myStack.Size()
-		fmt.Println("Size stack after all pop", currSize)
 	}
 }

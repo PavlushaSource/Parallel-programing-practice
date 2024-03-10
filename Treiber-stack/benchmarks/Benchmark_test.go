@@ -50,7 +50,7 @@ func littleConcurrent(stack stacks.Stack[int]) {
 	wg.Add(goroutineCount)
 	for i := 0; i < goroutineCount; i++ {
 		go func() {
-			for j := 0; j < countElem/goroutineCount; j++ {
+			for j := 0; j < (countElem / goroutineCount); j++ {
 				stack.Push(j)
 			}
 			wg.Done()
@@ -115,7 +115,7 @@ func BenchmarkConcurrent(b *testing.B) {
 		}
 	})
 
-	b.Run("TreiberStack all concurrent", func(b *testing.B) {
+	b.Run("Optimization back-off elimination treiberStack all concurrent", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			optimizeTreiberStack := optimizationTreiber.CreateBackoffTreiberStack[int]()
 			allConcurrent(&optimizeTreiberStack)
