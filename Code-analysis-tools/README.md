@@ -1,2 +1,3 @@
-Работа выполнена в [форке](https://github.com/PavlushaSource/parallel-programing-task-2]) репозитория, в котором с помощью ThreadSanitizer и Helgrind 
+## Task done 
+Работа выполнена в [форке](https://github.com/PavlushaSource/parallel-programing-task-2) репозитория, в котором с помощью ThreadSanitizer и Helgrind 
 были устранены гонки данных и другие ошибки параллельного программирования.
