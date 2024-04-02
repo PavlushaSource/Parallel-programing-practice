@@ -119,6 +119,5 @@ func TestPushGoroutines(t *testing.T) {
 		}
 
 		wg.Wait()
-		currSize = myStack.Size()
 	}
 }
