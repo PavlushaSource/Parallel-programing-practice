@@ -5,7 +5,6 @@ import (
 	"Treiber-stack/stacks/Simple"
 	"Treiber-stack/stacks/Treiber"
 	"Treiber-stack/stacks/optimizationTreiber"
-	"runtime"
 	"sync"
 	"testing"
 )
@@ -91,9 +90,7 @@ func allConcurrent(stack stacks.Stack[int]) {
 	wg.Wait()
 }
 
-func BenchmarkConcurrent(b *testing.B) {
-	runtime.GOMAXPROCS(12)
-
+func BenchmarkLittleConcurrent(b *testing.B) {
 	b.Run("TreiberStack little concurrent", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			treiberStack := Treiber.CreateTreiberStack[int]()
@@ -107,7 +104,9 @@ func BenchmarkConcurrent(b *testing.B) {
 			littleConcurrent(&optimizeTreiberStack)
 		}
 	})
+}
 
+func BenchmarkAllConcurrent(b *testing.B) {
 	b.Run("TreiberStack all concurrent", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			treiberStack := Treiber.CreateTreiberStack[int]()
@@ -124,48 +123,70 @@ func BenchmarkConcurrent(b *testing.B) {
 }
 
 func PushAndPopInRow(stack stacks.Stack[int]) {
-	stack.Push(5)
-	stack.Pop()
-	stack.Push(20)
-	stack.Pop()
-	stack.Push(10)
-	stack.Push(10)
-	stack.Pop()
-	stack.Pop()
-	stack.Push(33)
+	wg := sync.WaitGroup{}
+	wg.Add(1_000)
+	for j := 0; j < 1_000; j++ {
+		go func(j int) {
+			defer wg.Done()
+			for k := 0; k < 1_000; k++ {
+				stack.Push(j)
+				stack.Pop()
+			}
+		}(j)
+	}
+	wg.Wait()
+}
+
+func PushPopConcurentRand(s stacks.Stack[int]) {
+	wg := sync.WaitGroup{}
+	wg.Add(2_000)
+	for j := 0; j < 1_000; j++ {
+		go func(j int) {
+			defer wg.Done()
+			for k := 0; k < 1_000; k++ {
+				s.Push(j)
+			}
+		}(j)
+		go func() {
+			wg.Done()
+			for k := 0; k < 1_000; k++ {
+				_, err := s.Pop()
+				if err != nil {
+					continue
+				}
+			}
+		}()
+	}
+	wg.Wait()
 }
 
 func BenchmarkOptimizationCompare(b *testing.B) {
-	runtime.GOMAXPROCS(12)
 
-	b.Run("TreiberStack the standard", func(b *testing.B) {
+	b.Run("TreiberStack push and pop in row", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			treiberStack := Treiber.CreateTreiberStack[int]()
-			for j := 0; j < 100_000; j++ {
-				go PushAndPopInRow(&treiberStack)
-			}
+			PushAndPopInRow(&treiberStack)
+		}
+	})
+
+	b.Run("TreiberStack with back-off elimination push and pop in row", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			optimizeTreiberStack := optimizationTreiber.CreateBackoffTreiberStack[int]()
+			PushAndPopInRow(&optimizeTreiberStack)
+		}
+	})
+
+	b.Run("TreiberStack random", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			treiberStack := Treiber.CreateTreiberStack[int]()
+			PushPopConcurentRand(&treiberStack)
 		}
 	})
 
 	b.Run("TreiberStack with back-off elimination random", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			optimizeTreiberStack := optimizationTreiber.CreateBackoffTreiberStack[int]()
-			for j := 0; j < 100_000; j++ {
-				go func(j int) {
-					for k := 0; k < 9; k++ {
-						optimizeTreiberStack.Push(j)
-					}
-				}(j)
-			}
-		}
-	})
-
-	b.Run("TreiberStack with back-off elimination smart", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			optimizeTreiberStack := optimizationTreiber.CreateBackoffTreiberStack[int]()
-			for j := 0; j < 100_000; j++ {
-				go PushAndPopInRow(&optimizeTreiberStack)
-			}
+			PushPopConcurentRand(&optimizeTreiberStack)
 		}
 	})
 }
