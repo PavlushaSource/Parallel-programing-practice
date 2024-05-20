@@ -34,7 +34,37 @@ func NewFineGrainedSyncTree[T any, K cmp.Ordered]() *FineGrainedSyncTree[T, K] {
 }
 
 func (t *FineGrainedSyncTree[T, K]) Insert(key K, value T) {
-	// TODO IT
+	currNode, parentNode := t.FinderNode(key)
+	insertNode := &FineNode[T, K]{key: key, value: value, mutex: &sync.Mutex{}}
+
+	if parentNode == nil {
+		if currNode != nil {
+			currNode.value = value
+			defer currNode.Unlock()
+		} else {
+			t.root = insertNode
+		}
+		t.mutex.Unlock()
+		return
+
+	} else {
+		defer parentNode.Unlock()
+		if currNode != nil {
+			currNode.value = value
+			currNode.Unlock()
+			return
+		} else {
+			switch cmp.Compare(key, parentNode.key) {
+			case -1:
+				parentNode.left = insertNode
+			case 1:
+				parentNode.right = insertNode
+			default:
+				panic("this should not happen: parent.key = insert key")
+			}
+			return
+		}
+	}
 }
 
 func (t *FineGrainedSyncTree[T, K]) Find(key K) (value T, exist bool) {
@@ -48,13 +78,69 @@ func (t *FineGrainedSyncTree[T, K]) Find(key K) (value T, exist bool) {
 
 	if currNode != nil {
 		defer currNode.Unlock()
-		return currNode.value, true
+		value = currNode.value
+		return value, true
 	}
 	return
 }
 
 func (t *FineGrainedSyncTree[T, K]) Remove(key K) {
-	// TODO IT
+	currNode, parentNode := t.FinderNode(key)
+
+	if currNode == nil {
+		if parentNode != nil {
+			parentNode.Unlock()
+		} else {
+			t.mutex.Unlock()
+		}
+		return
+	} else {
+		switch {
+		case currNode.left == nil && currNode.right == nil:
+			if parentNode.left != nil && parentNode.left == currNode {
+				parentNode.left = nil
+			} else {
+				parentNode.right = nil
+			}
+			parentNode.Unlock()
+			return
+		case currNode.left != nil && currNode.right == nil:
+			if parentNode.left != nil && parentNode.left == currNode {
+				parentNode.left = currNode.left
+			} else {
+				parentNode.right = currNode.left
+			}
+			parentNode.Unlock()
+			return
+		case currNode.right != nil && currNode.left == nil:
+			if parentNode.left != nil && parentNode.left == currNode {
+				parentNode.left = currNode.right
+			} else {
+				parentNode.right = currNode.right
+			}
+			parentNode.Unlock()
+			return
+		default:
+			// 2 child nodes current Node
+			currNode.right.Lock()
+			currNode.left.Lock()
+
+			rChild := currNode.right
+			lChild := currNode.left
+			if currNode.left.right == nil {
+				currNode.left.right = rChild
+			} else {
+				subTree := FineGrainedSyncTree[T, K]{mutex: &sync.Mutex{}, root: currNode.left.right}
+				subTree.Insert(rChild.key, rChild.value)
+			}
+
+		}
+	}
+
+}
+
+func NewFineNode[T any, K cmp.Ordered]() *FineNode[T, K] {
+	return &FineNode[T, K]{mutex: &sync.Mutex{}}
 }
 
 func (t *FineGrainedSyncTree[T, K]) FinderNode(key K) (currentNode *FineNode[T, K], parentNode *FineNode[T, K]) {
@@ -66,7 +152,6 @@ func (t *FineGrainedSyncTree[T, K]) FinderNode(key K) (currentNode *FineNode[T, 
 
 	t.root.Lock()
 	currentNode = t.root
-	parentNode = new(FineNode[T, K])
 
 	for currentNode != nil {
 		grandParent := parentNode
@@ -84,12 +169,12 @@ func (t *FineGrainedSyncTree[T, K]) FinderNode(key K) (currentNode *FineNode[T, 
 			}
 			currentNode = currentNode.right
 		case 0:
-			return
+			return parentNode, grandParent
 		}
 
 		// Анлочим древо
 		if grandParent == nil {
-			t.root.mutex.Unlock()
+			t.mutex.Unlock()
 		}
 
 		// Анлочим деда
