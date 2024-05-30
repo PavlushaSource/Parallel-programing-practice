@@ -106,3 +106,20 @@ func (t *GrainedSyncTree[T, K]) min(node *Node[T, K]) *Node[T, K] {
 	}
 	return node
 }
+
+func (t *GrainedSyncTree[T, K]) IsValid() bool {
+	return t.root.isValid()
+}
+
+func (nd *Node[T, K]) isValid() bool {
+	if nd == nil {
+		return true
+	}
+	if nd.left != nil && nd.left.key >= nd.key {
+		return false
+	}
+	if nd.right != nil && nd.right.key <= nd.key {
+		return false
+	}
+	return nd.left.isValid() && nd.right.isValid()
+}
